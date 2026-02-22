@@ -1,5 +1,5 @@
 {
-  "appId": "com.yourcompany.bullion",
+  "appId": "com.nitin.bullion",
   "appName": "Bullion App",
   "webDir": "www",
   "bundledWebRuntime": false,
