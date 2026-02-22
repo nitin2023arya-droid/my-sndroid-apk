@@ -1,9 +1,9 @@
 {
-  "name": "bullion-app",
+  "name": "accounting",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "mkdir -p www && cp index.html styles.css script.js export.js import.js pdf.js pdfModal.js www/",
+    "build": "mkdir -p dist && cp index.html styles.css script.js export.js import.js pdf.js pdfModal.js dist/",
     "sync": "npx cap sync",
     "copy": "npx cap copy",
     "open:android": "npx cap open android"
