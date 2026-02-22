@@ -1,9 +1,5 @@
 {
-  "appId": "com.nitin.bullion",
-  "appName": "Bullion App",
-  "webDir": "www",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
-  }
+  "appId": "com.mynewapp.dev",
+  "appName": "accounting",
+  "webDir": "dist"
 }
