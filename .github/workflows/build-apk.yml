@@ -2,8 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]   # or your default branch
-  workflow_dispatch:       # allows manual trigger from GitHub UI
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,7 +22,11 @@ jobs:
         run: npm install
 
       - name: Build web app
-        run: npm run build   # adjust if your build script is different
+        run: npm run build
+
+      # Debug: list files in dist to ensure everything is there
+      - name: Verify dist folder
+        run: ls -la dist/
 
       - name: Setup Java
         uses: actions/setup-java@v4
