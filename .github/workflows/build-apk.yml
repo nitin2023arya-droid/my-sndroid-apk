@@ -21,10 +21,12 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build web assets
-      run: npm run build
+    - name: Prepare web assets
+      run: |
+        mkdir -p dist
+        cp *.html *.css *.js dist/ || true
 
-    - name: Install Capacitor Android
+    - name: Add Android platform
       run: npx cap add android
 
     - name: Sync Capacitor
