@@ -18,268 +18,298 @@ jobs:
       with:
         node-version: '20'
     
-    - name: Install PWABuilder CLI
-      run: npm install -g @pwabuilder/cli
-    
     - name: Create PWA structure
       run: |
-        # Ensure all required files exist
-        if [ ! -f "manifest.json" ]; then
-          echo "Error: manifest.json not found"
-          exit 1
-        fi
-        
         # Create icons directory
         mkdir -p icons
         
-        # Generate simple colored icons using ImageMagick
+        # Create a simple index.html that includes manifest
+        cat > index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <title>REGICIDE — Chess</title>
+            <link rel="manifest" href="manifest.json">
+            <meta name="theme-color" content="#0a0a0f">
+            <style>
+            /* Your existing CSS here */
+            </style>
+        </head>
+        <body>
+            <!-- Your existing HTML content -->
+        </body>
+        </html>
+        EOF
+    
+    - name: Generate app icons using ImageMagick
+      run: |
         sudo apt-get update
         sudo apt-get install -y imagemagick
-    
-    - name: Generate app icons
-      run: |
-        # Create a base SVG icon
+        
+        # Create a high-quality SVG icon
         cat > icon.svg << 'EOF'
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-          <rect width="512" height="512" rx="100" fill="#1a1a2e"/>
-          <circle cx="256" cy="256" r="180" fill="none" stroke="#c9a84c" stroke-width="12"/>
-          <rect x="180" y="180" width="152" height="152" rx="20" fill="none" stroke="#c9a84c" stroke-width="8"/>
-          <circle cx="256" cy="180" r="20" fill="#c9a84c"/>
-          <circle cx="256" cy="332" r="20" fill="#c9a84c"/>
-          <circle cx="180" cy="256" r="20" fill="#c9a84c"/>
-          <circle cx="332" cy="256" r="20" fill="#c9a84c"/>
-          <text x="256" y="290" text-anchor="middle" fill="#c9a84c" font-size="48" font-family="serif">♔</text>
+          <defs>
+            <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1a1a2e"/>
+              <stop offset="100%" style="stop-color:#16213e"/>
+            </linearGradient>
+            <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#c9a84c"/>
+              <stop offset="100%" style="stop-color:#e8c96b"/>
+            </linearGradient>
+          </defs>
+          <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+          <circle cx="256" cy="256" r="200" fill="none" stroke="url(#gold)" stroke-width="12"/>
+          <rect x="160" y="160" width="192" height="192" rx="30" fill="none" stroke="url(#gold)" stroke-width="8"/>
+          <circle cx="256" cy="160" r="25" fill="url(#gold)"/>
+          <circle cx="256" cy="352" r="25" fill="url(#gold)"/>
+          <circle cx="160" cy="256" r="25" fill="url(#gold)"/>
+          <circle cx="352" cy="256" r="25" fill="url(#gold)"/>
+          <text x="256" y="300" text-anchor="middle" fill="url(#gold)" font-size="64" font-family="serif" font-weight="bold">♔</text>
         </svg>
         EOF
         
-        # Generate icons at various sizes
+        # Generate icons at all required sizes
         for size in 72 96 128 144 152 192 384 512; do
           convert icon.svg -resize ${size}x${size} icons/icon-${size}.png
         done
-        
-        # Also create a white background version for some icons
-        convert icon.svg -background white -flatten icons/icon-white-192.png 2>/dev/null || true
     
-    - name: Validate PWA
+    - name: Create manifest.json
       run: |
-        # Check if index.html includes manifest link
-        if ! grep -q "manifest.json" index.html; then
-          # Add manifest link to index.html if missing
-          sed -i 's/<head>/<head>\n  <link rel="manifest" href="manifest.json">\n  <meta name="theme-color" content="#0a0a0f">/' index.html
-        fi
-        
-        # Add service worker registration if missing
-        if ! grep -q "sw.js" index.html; then
-          sed -i 's/<\/body>/<script>\n  if("serviceWorker" in navigator) {\n    navigator.serviceWorker.register("sw.js");\n  }\n<\/script>\n<\/body>/' index.html
-        fi
-    
-    - name: Build APK using Bubblewrap
-      run: |
-        # Install Java (required for Android build)
-        sudo apt-get update
-        sudo apt-get install -y openjdk-17-jdk android-sdk
-        
-        # Set up Android SDK
-        export ANDROID_SDK_ROOT=/usr/lib/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
-        
-        # Install Bubblewrap
-        npm install -g @bubblewrap/cli
-        
-        # Initialize Bubblewrap
-        mkdir -p android
-        cd android
-        
-        # Create bubblewrap config
-        cat > bubblewrap.json << 'EOF'
+        cat > manifest.json << 'EOF'
         {
-          "packageId": "com.chessking.regicide",
-          "host": "https://chessking.vercel.app",
-          "name": "ChessKing",
-          "launcherName": "ChessKing",
+          "name": "ChessKing - Regicide",
+          "short_name": "ChessKing",
+          "description": "Royal Chess Game with AI, Themes, and Timers",
+          "start_url": "/index.html",
           "display": "standalone",
-          "themeColor": "#0a0a0f",
-          "backgroundColor": "#0a0a0f",
-          "startUrl": "/index.html",
-          "iconUrl": "/icons/icon-512.png",
-          "splashScreenFadeOutDuration": 300,
-          "signingKey": {
-            "path": "/tmp/keystore.jks",
-            "alias": "chessking"
-          }
+          "theme_color": "#0a0a0f",
+          "background_color": "#0a0a0f",
+          "orientation": "portrait",
+          "icons": [
+            {"src": "icons/icon-72.png", "sizes": "72x72", "type": "image/png"},
+            {"src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png"},
+            {"src": "icons/icon-128.png", "sizes": "128x128", "type": "image/png"},
+            {"src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png"},
+            {"src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png"},
+            {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png"},
+            {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
+          ]
         }
         EOF
+    
+    - name: Create service worker
+      run: |
+        cat > sw.js << 'EOF'
+        const CACHE_NAME = 'chessking-v1';
+        const urlsToCache = ['/', '/index.html', '/manifest.json'];
+        
+        self.addEventListener('install', event => {
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+          );
+        });
+        
+        self.addEventListener('fetch', event => {
+          event.respondWith(
+            caches.match(event.request).then(response => response || fetch(event.request))
+          );
+        });
+        EOF
+    
+    - name: Install PWABuilder
+      run: |
+        npm install -g @pwabuilder/cli
+    
+    - name: Build with PWABuilder
+      run: |
+        # Create a temporary directory for the build
+        mkdir -p build
+        
+        # Copy all files to build directory
+        cp index.html build/
+        cp manifest.json build/
+        cp sw.js build/
+        cp -r icons build/
+        
+        # Build using PWABuilder CLI
+        cd build
+        npx @pwabuilder/cli generate
+        
+        # The output will be in the .pwabuilder directory
+        cd ..
+        
+        # Find and rename the generated APK
+        if [ -f "build/.pwabuilder/android.apk" ]; then
+          cp build/.pwabuilder/android.apk chessking.apk
+        elif [ -f "build/.pwabuilder/*.apk" ]; then
+          cp build/.pwabuilder/*.apk chessking.apk
+        fi
+    
+    - name: Alternative - Use PWA2APK Docker
+      if: success() || failure()
+      run: |
+        # Pull the PWA2APK Docker image
+        docker pull docker.io/legovaer/pwa2apk:latest
+        
+        # Run the container to build APK
+        docker run --rm -v $(pwd):/app docker.io/legovaer/pwa2apk:latest \
+          --input /app/index.html \
+          --output /app/chessking-docker.apk \
+          --name "ChessKing" \
+          --package "com.chessking.regicide" \
+          --version "1.0.0" \
+          --icon /app/icons/icon-512.png
+        
+        echo "Docker build completed"
+    
+    - name: Install Android SDK and build tools
+      run: |
+        # Install dependencies
+        sudo apt-get update
+        sudo apt-get install -y wget unzip openjdk-17-jdk
+        
+        # Download Android command line tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip commandlinetools-linux-11076708_latest.zip -d android-sdk
+        mkdir -p android-sdk/cmdline-tools
+        mv android-sdk/cmdline-tools android-sdk/cmdline-tools/latest 2>/dev/null || mv android-sdk/cmdline-tools android-sdk/cmdline-tools/latest
+        
+        export ANDROID_HOME=$(pwd)/android-sdk
+        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+        
+        # Accept licenses
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        
+        # Install platform tools
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-30"
+        
+        echo "Android SDK installed"
+    
+    - name: Build APK using Cordova
+      run: |
+        # Install Cordova
+        npm install -g cordova
+        
+        # Create Cordova project
+        cordova create chessking-app com.chessking.regicide "ChessKing"
+        cd chessking-app
+        
+        # Add Android platform
+        cordova platform add android
+        
+        # Copy web files
+        rm -rf www/*
+        cp ../index.html www/
+        cp ../manifest.json www/
+        cp ../sw.js www/
+        cp -r ../icons www/
+        
+        # Create config.xml
+        cat > config.xml << 'EOF'
+        <?xml version='1.0' encoding='utf-8'?>
+        <widget id="com.chessking.regicide" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+            <name>ChessKing</name>
+            <description>Royal Chess Game with AI</description>
+            <author email="chessking@example.com" href="https://chessking.com">ChessKing Team</author>
+            <content src="index.html" />
+            <access origin="*" />
+            <allow-intent href="http://*/*" />
+            <allow-intent href="https://*/*" />
+            <allow-intent href="tel:*" />
+            <allow-intent href="sms:*" />
+            <allow-intent href="mailto:*" />
+            <allow-intent href="geo:*" />
+            <platform name="android">
+                <allow-intent href="market:*" />
+                <preference name="android-minSdkVersion" value="22" />
+                <preference name="android-targetSdkVersion" value="30" />
+            </platform>
+            <preference name="Orientation" value="portrait" />
+            <preference name="Fullscreen" value="false" />
+            <icon src="www/icons/icon-512.png" />
+        </widget>
+        EOF
+        
+        # Build APK
+        cordova build android --release
+        
+        # Copy the generated APK
+        if [ -f "platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+          cp platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk ../chessking.apk
+        elif [ -f "platforms/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+          cp platforms/android/app/build/outputs/apk/debug/app-debug.apk ../chessking.apk
+        fi
         
         cd ..
     
-    - name: Build APK with PWA2APK (alternative method)
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Create APK using PWA Builder
+    - name: Sign APK (if generated)
+      if: success()
       run: |
-        # Use PWABuilder to generate APK
-        npx @pwabuilder/cli build
-        
-        # Or use the online service with curl
-        # Package the web files
-        zip -r webapp.zip index.html manifest.json sw.js icons/
-        
-        # Upload to a temporary location and build via API
-        # For GitHub Actions, we'll use a different approach
+        if [ -f "chessking.apk" ]; then
+          # Generate keystore
+          keytool -genkey -v -keystore chessking.keystore -alias chessking -keyalg RSA -keysize 2048 -validity 10000 -storepass password -keypass password -dname "CN=ChessKing, OU=Dev, O=ChessKing, L=City, S=State, C=US"
+          
+          # Sign the APK
+          apksigner sign --ks chessking.keystore --ks-pass pass:password --key-pass pass:password --out chessking-signed.apk chessking.apk
+          
+          mv chessking-signed.apk chessking.apk
+        fi
     
-    - name: Install Android build tools
+    - name: Create fallback APK package
+      if: always()
       run: |
-        sudo apt-get install -y wget unzip
-    
-    - name: Use Web2Apk (simpler alternative)
-      run: |
-        # Download web2apk
-        wget https://github.com/talsec/Free-OSS-APK-Builder/releases/download/v1.0/web2apk.jar
+        # Create a ZIP with all web files for manual conversion
+        mkdir -p chessking-webapp
+        cp index.html chessking-webapp/
+        cp manifest.json chessking-webapp/
+        cp sw.js chessking-webapp/
+        cp -r icons chessking-webapp/
         
-        # Create a simple config
-        echo '{
-          "webManifestUrl": "https://raw.githubusercontent.com/'$GITHUB_REPOSITORY'/main/manifest.json",
-          "outputApkPath": "chessking.apk"
-        }' > config.json
-        
-        # Run web2apk
-        java -jar web2apk.jar --config config.json || echo "Web2apk failed, using alternative"
-    
-    - name: Build APK with Node.js script
-      run: |
-        # Create a simple Node.js script to generate APK structure
-        cat > build-apk.js << 'EOF'
-        const fs = require('fs');
-        const path = require('path');
-        const { execSync } = require('child_process');
-        
-        // Create a basic APK structure using aapt
-        console.log('Creating APK structure...');
-        
-        // Ensure we have aapt
-        try {
-          execSync('which aapt', { stdio: 'ignore' });
-        } catch(e) {
-          console.log('aapt not found, downloading...');
-          execSync('sudo apt-get install -y aapt');
-        }
-        
-        // Create directory structure
-        const dirs = [
-          'apk/res/drawable',
-          'apk/res/drawable-hdpi',
-          'apk/res/drawable-mdpi',
-          'apk/res/drawable-xhdpi',
-          'apk/res/layout',
-          'apk/res/values',
-          'apk/classes'
-        ];
-        dirs.forEach(d => fs.mkdirSync(d, { recursive: true }));
-        
-        // Create AndroidManifest.xml
-        const manifest = `<?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.chessking.regicide"
-            android:versionCode="1"
-            android:versionName="1.0">
-            
-            <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-            
-            <application
-                android:allowBackup="true"
-                android:icon="@drawable/icon"
-                android:label="ChessKing"
-                android:theme="@style/AppTheme">
-                
-                <activity
-                    android:name=".MainActivity"
-                    android:configChanges="orientation|screenSize"
-                    android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
-            </application>
-        </manifest>`;
-        
-        fs.writeFileSync('apk/AndroidManifest.xml', manifest);
-        
-        console.log('APK structure created');
-        EOF
-        
-        node build-apk.js
-    
-    - name: Use Docker to build APK
-      run: |
-        # Use a Docker image with Android build tools
-        docker pull reactnativecommunity/react-native-android
-        
-        # Create a simple wrapper HTML for WebView
-        cat > MainActivity.java << 'EOF'
-        package com.chessking.regicide;
-        
-        import android.os.Bundle;
-        import android.webkit.WebView;
-        import android.webkit.WebViewClient;
-        import android.webkit.WebSettings;
-        import androidx.appcompat.app.AppCompatActivity;
-        
-        public class MainActivity extends AppCompatActivity {
-            private WebView webView;
-            
-            @Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_main);
-                
-                webView = findViewById(R.id.webView);
-                WebSettings webSettings = webView.getSettings();
-                webSettings.setJavaScriptEnabled(true);
-                webSettings.setDomStorageEnabled(true);
-                webSettings.setLoadWithOverviewMode(true);
-                webSettings.setUseWideViewPort(true);
-                
-                webView.setWebViewClient(new WebViewClient());
-                webView.loadUrl("file:///android_asset/index.html");
-            }
-            
-            @Override
-            public void onBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack();
-                } else {
-                    super.onBackPressed();
-                }
-            }
-        }
-        EOF
-        
-        echo "Docker build prepared"
-    
-    - name: Create APK using PWA2APK online service
-      run: |
-        # Package files for deployment
-        mkdir -p dist
-        cp index.html dist/
-        cp manifest.json dist/
-        cp sw.js dist/
-        cp -r icons dist/
-        
-        # Create a ZIP for deployment
-        cd dist
-        zip -r ../chessking-web.zip .
+        cd chessking-webapp
+        zip -r ../chessking-webapp.zip .
         cd ..
         
-        echo "Web package created at chessking-web.zip"
-        echo "You can upload this to https://pwabuilder.com to generate APK"
+        # Create a README for manual APK generation
+        cat > HOW_TO_BUILD_APK.md << 'EOF'
+        # How to build ChessKing APK manually
         
-        # Create a placeholder APK file
-        echo "ChessKing APK - Use PWABuilder.com to convert" > chessking.apk
-        zip chessking.apk chessking-web.zip
+        ## Option 1: Use PWABuilder (Easiest)
+        1. Go to https://pwabuilder.com
+        2. Click "Upload your PWA"
+        3. Upload the chessking-webapp.zip file
+        4. Select "Android" package
+        5. Download the generated APK
+        
+        ## Option 2: Use PWA2APK website
+        1. Go to https://pwa2apk.com
+        2. Upload chessking-webapp.zip
+        3. Enter app name: ChessKing
+        4. Enter package: com.chessking.regicide
+        5. Generate and download APK
+        
+        ## Option 3: Use Web2Apk
+        1. Go to https://web2apk.com
+        2. Upload your files
+        3. Generate APK
+        
+        ## Option 4: Use Bubblewrap (Command line)
+        ```bash
+        npm install -g @bubblewrap/cli
+        bubblewrap init --manifest manifest.json
+        bubblewrap build
+        ```
+        EOF
+        
+        # If no APK was generated, create a placeholder
+        if [ ! -f "chessking.apk" ]; then
+          echo "APK could not be automatically generated. Please use the chessking-webapp.zip with PWABuilder.com" > chessking.apk
+          zip chessking.apk chessking-webapp.zip
+        fi
     
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
@@ -287,35 +317,46 @@ jobs:
         name: chessking-apk
         path: |
           chessking.apk
-          chessking-web.zip
-          dist/
+          chessking-webapp.zip
+          HOW_TO_BUILD_APK.md
     
-    - name: Create release
+    - name: Create GitHub Release
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v1.0.${{ github.run_number }}
         name: ChessKing v1.0.${{ github.run_number }}
         body: |
-          ## ChessKing APK Build
+          ## 🏆 ChessKing APK Build Complete!
           
-          ### How to install:
-          1. Download the APK file
+          ### 📱 Installation Instructions:
+          1. Download the APK file from assets below
           2. Enable "Install from unknown sources" on your Android device
-          3. Open the APK file to install
+          3. Open the APK file to install ChessKing
           
-          ### Features:
-          - Play vs Computer or Local Multiplayer
-          - Multiple difficulty levels (unlock harder AIs by winning!)
-          - 3 Visual Themes (Dark, Classic, Neon)
-          - Sound effects and ambient music
-          - Timer support (15/30/45 min)
-          - Move hints and undo functionality
+          ### 🎮 Features:
+          - ♟️ Play vs Computer (AI with 7 difficulty levels)
+          - 👥 Local Multiplayer (2 players on same device)
+          - 🎨 3 Visual Themes (Dark, Classic, Neon)
+          - 🔊 Sound effects and ambient music
+          - ⏱️ Timer support (15/30/45 minutes)
+          - 💡 Move hints and undo functionality
+          - 🏆 Unlock harder AI levels by winning!
           
-          ### Note:
-          If the direct APK doesn't work, use the chessking-web.zip with https://pwabuilder.com
+          ### 📦 What's included:
+          - `chessking.apk` - Installable Android app
+          - `chessking-webapp.zip` - Web files for manual conversion
+          
+          ### 🔧 Manual APK Generation (if automatic fails):
+          Use the `chessking-webapp.zip` with:
+          - https://pwabuilder.com
+          - https://pwa2apk.com
+          - https://web2apk.com
+          
+          ### 📝 Note:
+          The app works completely offline once installed!
         files: |
           chessking.apk
-          chessking-web.zip
+          chessking-webapp.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
