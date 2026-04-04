@@ -1,0 +1,14 @@
+{
+  "name": "chessking",
+  "version": "1.0.0",
+  "description": "Royal Chess Game with AI",
+  "main": "index.html",
+  "scripts": {
+    "build": "pwabuilder build",
+    "start": "http-server -p 8080"
+  },
+  "devDependencies": {
+    "@pwabuilder/cli": "^3.0.0",
+    "http-server": "^14.1.1"
+  }
+}
