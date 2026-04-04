@@ -1,0 +1,14 @@
+{
+  "name": "chessking",
+  "version": "1.0.0",
+  "description": "ChessKing Android App",
+  "main": "index.html",
+  "scripts": {
+    "build": "cp index.html dist/index.html"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {}
+}
