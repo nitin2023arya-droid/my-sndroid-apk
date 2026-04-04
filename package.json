@@ -4,11 +4,11 @@
   "description": "ChessKing Android App",
   "main": "index.html",
   "scripts": {
-    "build": "cp index.html dist/index.html"
+    "build": "mkdir -p dist && cp *.html *.css *.js dist/"
   },
   "dependencies": {
-    "@capacitor/android": "^6.0.0",
-    "@capacitor/core": "^6.0.0"
-  },
-  "devDependencies": {}
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  }
 }
