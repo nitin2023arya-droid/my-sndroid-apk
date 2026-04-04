@@ -1,0 +1,6 @@
+{
+  "appId": "com.chessking.app",
+  "appName": "ChessKing",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
